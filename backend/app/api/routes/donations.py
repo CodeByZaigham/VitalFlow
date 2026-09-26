@@ -57,3 +57,20 @@ def get_all_donations(
     rows = cur.fetchall()
     cur.close()
     return [_row_to_out(r) for r in rows]
+
+@router.get("/{donation_id}", response_model=DonationOut)
+def get_donation_by_id(
+    donation_id: int,
+    _admin=Depends(get_admin_user),
+    conn: MySQLConnection = Depends(get_db),
+):
+    cur = conn.cursor(dictionary=True)
+    cur.execute(
+        "SELECT id, donor_id, donor_name, blood_type, quantity, donation_date, created_at FROM donations WHERE id=%s",
+        (donation_id,),
+    )
+    row = cur.fetchone()
+    cur.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="Donation not found")
+    return _row_to_out(row)
