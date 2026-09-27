@@ -136,3 +136,26 @@ def create_donation(
     row = cur.fetchone()
     cur.close()
     return _row_to_out(row)
+
+@router.get("/stats")
+def donation_stats(
+    _admin=Depends(get_admin_user),
+    conn: MySQLConnection = Depends(get_db),
+):
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT COUNT(*) AS total_donations, COALESCE(SUM(quantity),0) AS total_quantity FROM donations")
+    totals = cur.fetchone() or {"total_donations": 0, "total_quantity": 0}
+
+    cur.execute("SELECT blood_type, COALESCE(SUM(quantity),0) AS qty FROM donations GROUP BY blood_type")
+    rows = cur.fetchall() or []
+    cur.close()
+
+    by = {r["blood_type"]: int(r["qty"]) for r in rows}
+    all_types = ["A+","A-","B+","B-","AB+","AB-","O+","O-"]
+    by_full = {bt: by.get(bt, 0) for bt in all_types}
+
+    return {
+        "totalDonations": int(totals["total_donations"]),
+        "totalQuantity": int(totals["total_quantity"]),
+        "byBloodType": by_full,
+    }
