@@ -89,3 +89,50 @@ def get_donations_by_donor(
     rows = cur.fetchall()
     cur.close()
     return [_row_to_out(r) for r in rows]
+
+@router.post("", response_model=DonationOut, status_code=status.HTTP_201_CREATED)
+def create_donation(
+    payload: DonationCreate,
+    _admin=Depends(get_admin_user),
+    conn: MySQLConnection = Depends(get_db),
+):
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            "INSERT INTO donations (donor_id, donor_name, blood_type, quantity, donation_date) VALUES (%s, %s, %s, %s, %s)",
+            (
+                int(payload.donor_id) if payload.donor_id else None,
+                payload.donor_name,
+                payload.blood_type,
+                payload.quantity,
+                payload.donation_date,
+            ),
+        )
+
+        cur.execute(
+            "UPDATE blood_inventory SET quantity = quantity + %s WHERE blood_type=%s",
+            (payload.quantity, payload.blood_type),
+        )
+
+        if payload.donor_id:
+            cur.execute(
+                "UPDATE donors SET last_donation_date=%s , is_available = 0 WHERE id=%s",
+                (payload.donation_date, int(payload.donor_id)),
+            )
+
+        conn.commit()
+        new_id = cur.lastrowid
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail="Failed to create donation") from e
+    finally:
+        cur.close()
+
+    cur = conn.cursor(dictionary=True)
+    cur.execute(
+        "SELECT id, donor_id, donor_name, blood_type, quantity, donation_date, created_at FROM donations WHERE id=%s",
+        (new_id,),
+    )
+    row = cur.fetchone()
+    cur.close()
+    return _row_to_out(row)
