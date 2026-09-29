@@ -75,3 +75,51 @@ def get_donor_by_id(
     if not row:
         raise HTTPException(status_code=404, detail="Donor not found")
     return _row_to_out(row)
+
+@router.post("", response_model=DonorOut, status_code=status.HTTP_201_CREATED)
+def create_donor(
+    payload: DonorCreate,
+    current_user=Depends(get_current_user),
+    conn: MySQLConnection = Depends(get_db),
+):
+    user_id = payload.user_id or str(current_user["id"])
+    # Validate user
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT id FROM users WHERE id=%s", (int(user_id),))
+    if not cur.fetchone():
+        cur.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    cur.close()
+
+    if current_user["role"] != "admin" and str(current_user["id"]) != str(user_id):
+        raise HTTPException(status_code=403, detail="Cannot create donor for another user")
+
+    cur = conn.cursor(dictionary=True)
+    cur.execute(
+        "INSERT INTO donors (user_id, name, age, blood_type, gender, health_status, city, phone, last_donation_date, is_available) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+        (
+            int(user_id) if user_id is not None else None,
+            payload.name,
+            payload.age,
+            payload.blood_type,
+            payload.gender,
+            payload.health_status,
+            payload.city,
+            payload.phone,
+            payload.last_donation_date,
+            1 if payload.is_available else 0,
+        ),
+    )
+    conn.commit()
+    donor_id = cur.lastrowid
+    cur.execute(
+        "SELECT id, user_id, name, age, blood_type, gender, health_status, city, phone, last_donation_date, is_available, created_at "
+        "FROM donors WHERE id=%s",
+        (donor_id,),
+    )
+    row = cur.fetchone()
+    cur.close()
+    if not row:
+        raise HTTPException(status_code=500, detail="Failed to create donor")
+    return _row_to_out(row)
