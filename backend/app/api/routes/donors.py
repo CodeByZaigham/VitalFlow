@@ -25,3 +25,35 @@ def _row_to_out(row) -> DonorOut:
           is_available=bool(row["is_available"]),
           created_at=row["created_at"],
      )
+
+@router.get("", response_model=list[DonorOut])
+def get_all_donors(
+    city: Optional[str] = None,
+    blood_type: Optional[BloodType] = Query(default=None, alias="blood_type"),
+    is_available: Optional[bool] = Query(default=None, alias="is_available"),
+    _user=Depends(get_current_user),
+    conn: MySQLConnection = Depends(get_db),
+):
+    conditions = []
+    params = []
+
+    if city:
+        conditions.append("city=%s")
+        params.append(city)
+    if blood_type:
+        conditions.append("blood_type=%s")
+        params.append(blood_type)
+    if is_available is not None:
+        conditions.append("is_available=%s")
+        params.append(1 if is_available else 0)
+
+    where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    cur = conn.cursor(dictionary=True)
+    cur.execute(
+        f"SELECT id, user_id, name, age, blood_type, gender, health_status, city, phone, last_donation_date, is_available, created_at "
+        f"FROM donors {where} ORDER BY created_at DESC",
+        tuple(params),
+    )
+    rows = cur.fetchall() or []
+    cur.close()
+    return [_row_to_out(r) for r in rows]
