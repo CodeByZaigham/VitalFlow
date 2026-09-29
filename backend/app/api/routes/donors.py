@@ -123,3 +123,59 @@ def create_donor(
     if not row:
         raise HTTPException(status_code=500, detail="Failed to create donor")
     return _row_to_out(row)
+
+@router.put("/{donor_id}", response_model=DonorOut)
+def update_donor(
+    donor_id: int,
+    payload: DonorUpdate,
+    current_user=Depends(get_current_user),
+    conn: MySQLConnection = Depends(get_db),
+):
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT id, user_id FROM donors WHERE id=%s", (donor_id,))
+    existing = cur.fetchone()
+    if not existing:
+        cur.close()
+        raise HTTPException(status_code=404, detail="Donor not found")
+    owner_id = existing.get("user_id")
+
+    if current_user["role"] != "admin":
+        if owner_id is None or int(owner_id) != int(current_user["id"]):
+            cur.close()
+            raise HTTPException(status_code=403, detail="Forbidden")
+
+    updates = []
+    params = []
+
+    def add(field, value):
+        if value is not None:
+            updates.append(f"{field}=%s")
+            params.append(value)
+
+    add("name", payload.name)
+    add("age", payload.age)
+    add("blood_type", payload.blood_type)
+    add("gender", payload.gender)
+    add("health_status", payload.health_status)
+    add("city", payload.city)
+    add("phone", payload.phone)
+    if payload.last_donation_date is not None:
+        updates.append("last_donation_date=%s")
+        params.append(payload.last_donation_date)
+    if payload.is_available is not None:
+        updates.append("is_available=%s")
+        params.append(1 if payload.is_available else 0)
+
+    if updates:
+        params.append(donor_id)
+        cur.execute(f"UPDATE donors SET {', '.join(updates)} WHERE id=%s", tuple(params))
+        conn.commit()
+
+    cur.execute(
+        "SELECT id, user_id, name, age, blood_type, gender, health_status, city, phone, last_donation_date, is_available, created_at "
+        "FROM donors WHERE id=%s",
+        (donor_id,),
+    )
+    row = cur.fetchone()
+    cur.close()
+    return _row_to_out(row)
