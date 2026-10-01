@@ -179,3 +179,30 @@ def update_donor(
     row = cur.fetchone()
     cur.close()
     return _row_to_out(row)
+
+@router.delete("/{donor_id}")
+def delete_donor(
+    donor_id: int,
+    current_user=Depends(get_current_user),
+    conn: MySQLConnection = Depends(get_db),
+):
+    # Only admin or owner
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT id, user_id FROM donors WHERE id=%s", (donor_id,))
+    existing = cur.fetchone()
+    if not existing:
+        cur.close()
+        raise HTTPException(status_code=404, detail="Donor not found")
+    owner_id = existing.get("user_id")
+    if current_user["role"] != "admin":
+        if owner_id is None or int(owner_id) != int(current_user["id"]):
+            cur.close()
+            raise HTTPException(status_code=403, detail="Forbidden")
+
+    cur2 = conn.cursor()
+    cur2.execute("DELETE FROM donors WHERE id=%s", (donor_id,))
+    conn.commit()
+    cur.close()
+    cur2.close()
+    return {"success": True, "message": "Donor deleted"}
+
