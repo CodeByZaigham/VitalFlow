@@ -41,3 +41,31 @@ def get_inventory_by_type(
     if not row:
         raise HTTPException(status_code=404, detail="Blood type not found")
     return _row_to_out(row)
+
+@router.put("/{blood_type}", response_model=InventoryOut)
+def update_inventory(
+    blood_type: BloodType,
+    payload: InventoryUpdate,
+    _admin=Depends(get_admin_user),
+    conn: MySQLConnection = Depends(get_db),
+):
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute("UPDATE blood_inventory SET quantity=%s WHERE blood_type=%s", (payload.quantity, blood_type))
+        if cur.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Blood type not found")
+        conn.commit()
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail="Failed to update inventory") from e
+    finally:
+        cur.close()
+
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT blood_type, quantity, last_updated FROM blood_inventory WHERE blood_type=%s", (blood_type,))
+    row = cur.fetchone()
+    cur.close()
+    return _row_to_out(row)
