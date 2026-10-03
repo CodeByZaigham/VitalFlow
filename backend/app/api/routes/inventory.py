@@ -69,3 +69,19 @@ def update_inventory(
     row = cur.fetchone()
     cur.close()
     return _row_to_out(row)
+
+@router.get("/stats")
+def inventory_stats(
+    _user=Depends(get_current_user),
+    conn: MySQLConnection = Depends(get_db),
+):
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT blood_type, quantity FROM blood_inventory")
+    rows = cur.fetchall() or []
+    cur.close()
+    all_types = ["A+","A-","B+","B-","AB+","AB-","O+","O-"]
+    by = {r["blood_type"]: int(r["quantity"]) for r in rows}
+    by_full = {bt: by.get(bt, 0) for bt in all_types}
+    total = sum(by_full.values())
+    low_stock = [bt for bt,q in by_full.items() if q <= 2]
+    return {"totalQuantity": total, "byBloodType": by_full, "lowStock": low_stock}
