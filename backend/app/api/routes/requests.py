@@ -29,3 +29,38 @@ def _row_to_out(row) -> BloodRequestOut:
         created_at=row["created_at"],
         updated_at=row.get("updated_at"),
     )
+
+@router.get("", response_model=list[BloodRequestOut])
+def get_all_requests(
+    status_filter: Optional[str] = Query(default=None, alias="status"),
+    blood_type: Optional[BloodType] = Query(default=None, alias="blood_type"),
+    user_id: Optional[int] = Query(default=None, alias="user_id"),
+    current_user=Depends(get_current_user),
+    conn: MySQLConnection = Depends(get_db),
+):
+    if current_user["role"] != "admin":
+        if user_id is None or int(user_id) != int(current_user["id"]):
+            raise HTTPException(status_code=403, detail="Forbidden")
+
+    conditions = []
+    params = []
+    if status_filter:
+        conditions.append("status=%s")
+        params.append(status_filter)
+    if blood_type:
+        conditions.append("blood_type=%s")
+        params.append(blood_type)
+    if user_id is not None:
+        conditions.append("user_id=%s")
+        params.append(user_id)
+
+    where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    cur = conn.cursor(dictionary=True)
+    cur.execute(
+        "SELECT id, user_id, user_name, blood_type, quantity, city, urgency, reason, status, created_at, updated_at "
+        f"FROM blood_requests {where} ORDER BY created_at DESC",
+        tuple(params),
+    )
+    rows = cur.fetchall() or []
+    cur.close()
+    return [_row_to_out(r) for r in rows]
