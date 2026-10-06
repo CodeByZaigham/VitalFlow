@@ -64,3 +64,23 @@ def get_all_requests(
     rows = cur.fetchall() or []
     cur.close()
     return [_row_to_out(r) for r in rows]
+
+
+@router.get("/user/{user_id}", response_model=list[BloodRequestOut])
+def get_user_requests(
+    user_id: int,
+    current_user=Depends(get_current_user),
+    conn: MySQLConnection = Depends(get_db),
+):
+    if current_user["role"] != "admin" and int(current_user["id"]) != user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    cur = conn.cursor(dictionary=True)
+    cur.execute(
+        "SELECT id, user_id, user_name, blood_type, quantity, city, urgency, reason, status, created_at, updated_at "
+        "FROM blood_requests WHERE user_id=%s ORDER BY created_at DESC",
+        (user_id,),
+    )
+    rows = cur.fetchall() or []
+    cur.close()
+    return [_row_to_out(r) for r in rows]
