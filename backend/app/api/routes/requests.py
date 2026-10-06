@@ -129,3 +129,79 @@ def create_request(
     if not row:
         raise HTTPException(status_code=500, detail="Failed to create request")
     return _row_to_out(row)
+
+@router.put("/{request_id}/status", response_model=BloodRequestOut)
+def update_request_status(
+    request_id: int,
+    payload: UpdateRequestStatus,
+    _admin=Depends(get_admin_user),
+    conn: MySQLConnection = Depends(get_db),
+):
+    cur = conn.cursor(dictionary=True)
+    try:
+        # Lock the request row
+        cur.execute(
+            "SELECT id, status, blood_type, quantity "
+            "FROM blood_requests WHERE id=%s FOR UPDATE",
+            (request_id,),
+        )
+        req = cur.fetchone()
+        if not req:
+            raise HTTPException(status_code=404, detail="Request not found")
+
+        if req["status"] != "Pending":
+            raise HTTPException(status_code=400, detail="Only pending requests can be updated")
+
+        if payload.status == "Approved":
+            needed_qty = int(req["quantity"])
+
+            # IMPORTANT: use blood_inventory table (your real table)
+            cur.execute(
+                "SELECT blood_type, quantity FROM blood_inventory WHERE blood_type=%s FOR UPDATE",
+                (req["blood_type"],),
+            )
+            inv = cur.fetchone()
+            available_qty = int(inv["quantity"]) if inv else 0
+
+            if available_qty < needed_qty:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Insufficient inventory for {req['blood_type']} (available {available_qty}ml)",
+                )
+
+            # Deduct and update timestamp
+            cur.execute(
+                "UPDATE blood_inventory SET quantity=%s, last_updated=NOW() WHERE blood_type=%s",
+                (available_qty - needed_qty, req["blood_type"]),
+            )
+
+            # Hard fail if nothing updated (prevents silent “approve without deduct”)
+            if cur.rowcount == 0:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Inventory deduction failed (no row updated). Check blood_inventory has that blood_type.",
+                )
+
+        # Update request status and updated_at
+        cur.execute(
+            "UPDATE blood_requests SET status=%s, updated_at=NOW() WHERE id=%s",
+            (payload.status, request_id),
+        )
+
+        conn.commit()
+
+        cur.execute(
+            "SELECT id, user_id, user_name, blood_type, quantity, city, urgency, reason, status, created_at, updated_at "
+            "FROM blood_requests WHERE id=%s",
+            (request_id,),
+        )
+        updated = cur.fetchone()
+        if not updated:
+            raise HTTPException(status_code=500, detail="Failed to fetch updated request")
+        return _row_to_out(updated)
+
+    except HTTPException:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
