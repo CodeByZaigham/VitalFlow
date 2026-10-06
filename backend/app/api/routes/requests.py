@@ -84,3 +84,48 @@ def get_user_requests(
     rows = cur.fetchall() or []
     cur.close()
     return [_row_to_out(r) for r in rows]
+
+@router.post("", response_model=BloodRequestOut, status_code=status.HTTP_201_CREATED)
+def create_request(
+    payload: BloodRequestCreate,
+    current_user=Depends(get_current_user),
+    conn: MySQLConnection = Depends(get_db),
+):
+    if current_user["role"] != "admin" and int(payload.user_id) != int(current_user["id"]):
+        raise HTTPException(status_code=403, detail="Cannot create request for another user")
+
+    # Validate user exists
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT id FROM users WHERE id=%s", (int(payload.user_id),))
+    if not cur.fetchone():
+        cur.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    cur.close()
+
+    cur = conn.cursor(dictionary=True)
+    cur.execute(
+        "INSERT INTO blood_requests (user_id, user_name, blood_type, quantity, city, urgency, reason, status) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, 'Pending')",
+        (
+            int(payload.user_id),
+            payload.user_name,
+            payload.blood_type,
+            payload.quantity,
+            payload.city,
+            payload.urgency,
+            payload.reason,
+        ),
+    )
+    conn.commit()
+    request_id = cur.lastrowid
+
+    cur.execute(
+        "SELECT id, user_id, user_name, blood_type, quantity, city, urgency, reason, status, created_at, updated_at "
+        "FROM blood_requests WHERE id=%s",
+        (request_id,),
+    )
+    row = cur.fetchone()
+    cur.close()
+    if not row:
+        raise HTTPException(status_code=500, detail="Failed to create request")
+    return _row_to_out(row)
