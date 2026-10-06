@@ -205,3 +205,32 @@ def update_request_status(
         raise
     finally:
         cur.close()
+
+@router.delete("/{request_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_request(
+    request_id: int,
+    current_user=Depends(get_current_user),
+    conn: MySQLConnection = Depends(get_db),
+):
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT id, user_id, status FROM blood_requests WHERE id=%s", (request_id,))
+    row = cur.fetchone()
+    if not row:
+        cur.close()
+        raise HTTPException(status_code=404, detail="Request not found")
+
+    is_owner = int(current_user["id"]) == int(row["user_id"])
+    if current_user["role"] != "admin":
+        if not is_owner:
+            cur.close()
+            raise HTTPException(status_code=403, detail="Forbidden")
+        if row["status"] != "Pending":
+            cur.close()
+            raise HTTPException(status_code=400, detail="Only pending requests can be deleted")
+
+    cur2 = conn.cursor()
+    cur2.execute("DELETE FROM blood_requests WHERE id=%s", (request_id,))
+    conn.commit()
+    cur.close()
+    cur2.close()
+    return None
