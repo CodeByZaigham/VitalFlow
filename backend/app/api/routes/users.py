@@ -93,3 +93,19 @@ def update_user(
         return _row_to_out(row)
     finally:
         cur.close()
+
+@router.delete("/{user_id}")
+def delete_user(
+    user_id: int,
+    _admin=Depends(get_admin_user),
+    conn: MySQLConnection = Depends(get_db),
+):
+    cur = conn.cursor()
+    cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
+    if cur.rowcount == 0:
+        conn.rollback()
+        cur.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    conn.commit()
+    cur.close()
+    return {"success": True, "message": "User deleted"}
