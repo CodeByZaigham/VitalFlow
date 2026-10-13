@@ -29,3 +29,21 @@ def get_all_users(
     rows = cur.fetchall() or []
     cur.close()
     return [_row_to_out(r) for r in rows]
+
+@router.get("/{user_id}", response_model=UserOut)
+def get_user_by_id(
+    user_id: int,
+    current_user=Depends(get_current_user),
+    conn: MySQLConnection = Depends(get_db),
+):
+    # customers can only fetch themselves
+    if current_user["role"] != "admin" and int(current_user["id"]) != user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT id, email, name, role, created_at FROM users WHERE id=%s", (user_id,))
+    row = cur.fetchone()
+    cur.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="User not found")
+    return _row_to_out(row)
