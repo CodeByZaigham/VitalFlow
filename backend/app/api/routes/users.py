@@ -18,3 +18,14 @@ def _row_to_out(row) -> UserOut:
         role=row["role"],
         created_at=row["created_at"],
     )
+
+@router.get("", response_model=list[UserOut])
+def get_all_users(
+    _admin=Depends(get_admin_user),
+    conn: MySQLConnection = Depends(get_db),
+):
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT id, email, name, role, created_at FROM users ORDER BY created_at DESC")
+    rows = cur.fetchall() or []
+    cur.close()
+    return [_row_to_out(r) for r in rows]
