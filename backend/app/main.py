@@ -15,3 +15,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
+app.include_router(donors.router, prefix="/api")
+app.include_router(requests.router, prefix="/api")
+app.include_router(donations.router, prefix="/api")
+app.include_router(inventory.router, prefix="/api")
+
+
+@app.get("/health")
+def health():
+    return {"ok": True}
