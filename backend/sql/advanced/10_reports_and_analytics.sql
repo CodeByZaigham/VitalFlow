@@ -82,3 +82,23 @@ WHERE br.status = 'Pending'
         AND dn.city = br.city
         AND dn.blood_type = br.blood_type
   );
+
+-- H) NOT EXISTS: Pending requests with NO matching available donors
+SELECT br.*
+FROM blood_requests br
+WHERE br.status = 'Pending'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM donors dn
+      WHERE dn.is_available = 1
+        AND dn.city = br.city
+        AND dn.blood_type = br.blood_type
+  );
+
+-- I) Subquery: Donors that can donate to a given request (same city, blood type, available)
+SET @req_id := 1;
+SELECT dn.*
+FROM donors dn
+WHERE dn.is_available = 1
+  AND dn.city = (SELECT city FROM blood_requests WHERE id = @req_id)
+  AND dn.blood_type = (SELECT blood_type FROM blood_requests WHERE id = @req_id);
