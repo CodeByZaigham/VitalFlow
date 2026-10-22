@@ -58,3 +58,27 @@ JOIN blood_inventory inv ON inv.blood_type = br.blood_type
 WHERE br.status = 'Pending'
   AND inv.quantity < br.quantity
 ORDER BY br.created_at DESC;
+
+-- F) Correlated subquery: donors who donated more than avg donations per donor
+SELECT dn.id, dn.name, dn.blood_type,
+       (SELECT COUNT(*) FROM donations d WHERE d.donor_id = dn.id) AS donation_count
+FROM donors dn
+WHERE (SELECT COUNT(*) FROM donations d WHERE d.donor_id = dn.id)
+      >
+      (SELECT AVG(cnt) FROM (
+          SELECT COUNT(*) AS cnt
+          FROM donations
+          GROUP BY donor_id
+      ) x);
+
+-- G) EXISTS: Pending requests that have at least one matching available donor in same city
+SELECT br.*
+FROM blood_requests br
+WHERE br.status = 'Pending'
+  AND EXISTS (
+      SELECT 1
+      FROM donors dn
+      WHERE dn.is_available = 1
+        AND dn.city = br.city
+        AND dn.blood_type = br.blood_type
+  );
