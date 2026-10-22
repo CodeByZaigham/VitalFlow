@@ -102,3 +102,28 @@ FROM donors dn
 WHERE dn.is_available = 1
   AND dn.city = (SELECT city FROM blood_requests WHERE id = @req_id)
   AND dn.blood_type = (SELECT blood_type FROM blood_requests WHERE id = @req_id);
+
+-- J) UNION: Combine donors and users (set operation demo)
+SELECT 'donor' AS source, id, name, city
+FROM donors
+UNION
+SELECT 'user' AS source, id, name, NULL AS city
+FROM users;
+
+-- K) CASE: Inventory status label
+SELECT blood_type, quantity,
+       CASE
+         WHEN quantity = 0 THEN 'Out of stock'
+         WHEN quantity BETWEEN 1 AND 5 THEN 'Low'
+         ELSE 'Available'
+       END AS stock_status
+FROM blood_inventory
+ORDER BY blood_type;
+
+-- L) Time-based: donors who haven't donated in last N days (or never donated)
+SET @days := 90;
+SELECT id, name, blood_type, city, last_donation_date
+FROM donors
+WHERE last_donation_date IS NULL
+   OR last_donation_date < (CURDATE() - INTERVAL @days DAY)
+ORDER BY last_donation_date IS NULL DESC, last_donation_date ASC;
