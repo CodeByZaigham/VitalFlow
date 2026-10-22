@@ -41,3 +41,20 @@ FROM donors
 WHERE is_available = 1
 GROUP BY city, blood_type
 ORDER BY city, blood_type;
+
+-- D) HAVING: Cities with at least N available donors
+SET @min_donors := 2;
+SELECT city, COUNT(*) AS available_donors
+FROM donors
+WHERE is_available = 1
+GROUP BY city
+HAVING COUNT(*) >= @min_donors
+ORDER BY available_donors DESC;
+
+-- E) Subquery/Join: Pending requests where inventory is not enough
+SELECT br.id, br.blood_type, br.quantity AS requested_qty, inv.quantity AS stock_qty, br.status
+FROM blood_requests br
+JOIN blood_inventory inv ON inv.blood_type = br.blood_type
+WHERE br.status = 'Pending'
+  AND inv.quantity < br.quantity
+ORDER BY br.created_at DESC;
