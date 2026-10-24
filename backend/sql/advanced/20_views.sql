@@ -34,3 +34,21 @@ SELECT br.id AS request_id,
        u.name AS account_name
 FROM blood_requests br
 JOIN users u ON u.id = br.user_id;
+
+SELECT * FROM v_request_details ORDER BY created_at DESC;
+
+-- 3) Donation history (donation + donor + account)
+CREATE OR REPLACE VIEW v_donation_history AS
+SELECT d.id AS donation_id,
+       d.blood_type,
+       d.quantity,
+       d.donation_date,
+       dn.id AS donor_id,
+       dn.name AS donor_name,
+       dn.city AS donor_city,
+       u.email AS donor_account_email
+FROM donations d
+JOIN donors dn ON dn.id = d.donor_id
+LEFT JOIN users u ON u.id = dn.user_id;
+
+SELECT * FROM v_donation_history ORDER BY donation_date DESC;
