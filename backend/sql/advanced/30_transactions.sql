@@ -30,3 +30,8 @@ SET last_donation_date = @donation_date,
 WHERE id = @donor_id;
 
 COMMIT;
+
+-- Verify
+SELECT * FROM donations WHERE donor_id = @donor_id ORDER BY donation_date DESC LIMIT 5;
+SELECT * FROM blood_inventory WHERE blood_type = @blood_type;
+SELECT id, name, last_donation_date, is_available FROM donors WHERE id = @donor_id;
