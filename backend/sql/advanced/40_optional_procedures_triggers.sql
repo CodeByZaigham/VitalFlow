@@ -67,3 +67,21 @@ DELIMITER ;
 
 -- ---------- (B) Trigger: auto-update inventory after a donation ----------
 -- Again: only enable if your app is NOT already doing the same update.
+
+DELIMITER $$
+
+CREATE TRIGGER trg_after_donation_insert
+AFTER INSERT ON donations
+FOR EACH ROW
+BEGIN
+    UPDATE blood_inventory
+    SET quantity = quantity + NEW.quantity
+    WHERE blood_type = NEW.blood_type;
+END$$
+
+DELIMITER ;
+
+-- Test:
+-- INSERT INTO donations (donor_id, donor_name, blood_type, quantity, donation_date)
+-- VALUES (1, 'Ali', 'A+', 1, CURDATE());
+-- SELECT * FROM blood_inventory WHERE blood_type='A+';
