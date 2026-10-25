@@ -15,3 +15,45 @@
 -- ---------- (A) Stored Procedure: approve a request atomically ----------
 -- Approves a request ONLY if inventory is enough, and deducts stock.
 -- Also sets status to 'Approved' or keeps it 'Pending' if not enough.
+
+DELIMITER $$
+
+CREATE PROCEDURE sp_approve_request(IN p_request_id INT)
+BEGIN
+    DECLARE v_blood_type VARCHAR(3);
+    DECLARE v_qty INT;
+    DECLARE v_stock INT;
+
+    -- get request info
+    SELECT blood_type, quantity INTO v_blood_type, v_qty
+    FROM blood_requests
+    WHERE id = p_request_id
+    FOR UPDATE;
+
+    -- get stock
+    SELECT quantity INTO v_stock
+    FROM blood_inventory
+    WHERE blood_type = v_blood_type
+    FOR UPDATE;
+
+    START TRANSACTION;
+
+    IF v_stock >= v_qty THEN
+        UPDATE blood_inventory
+        SET quantity = quantity - v_qty
+        WHERE blood_type = v_blood_type;
+
+        UPDATE blood_requests
+        SET status = 'Approved'
+        WHERE id = p_request_id;
+    ELSE
+        -- not enough stock: keep Pending (or you can set Rejected)
+        UPDATE blood_requests
+        SET status = 'Pending'
+        WHERE id = p_request_id;
+    END IF;
+
+    COMMIT;
+END$$
+
+DELIMITER ;
