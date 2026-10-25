@@ -85,3 +85,21 @@ DELIMITER ;
 -- INSERT INTO donations (donor_id, donor_name, blood_type, quantity, donation_date)
 -- VALUES (1, 'Ali', 'A+', 1, CURDATE());
 -- SELECT * FROM blood_inventory WHERE blood_type='A+';
+
+-- ---------- (C) Trigger: mark donor unavailable + update last donation date ----------
+DELIMITER $$
+
+CREATE TRIGGER trg_after_donation_insert_update_donor
+AFTER INSERT ON donations
+FOR EACH ROW
+BEGIN
+    UPDATE donors
+    SET last_donation_date = NEW.donation_date,
+        is_available = 0
+    WHERE id = NEW.donor_id;
+END$$
+
+DELIMITER ;
+
+-- Test:
+-- SELECT id, last_donation_date, is_available FROM donors WHERE id=1;
