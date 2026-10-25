@@ -57,3 +57,13 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+-- Usage:
+-- USE blood_donation_db;
+-- CALL sp_approve_request(1);
+-- SELECT * FROM blood_requests WHERE id = 1;
+-- SELECT * FROM blood_inventory WHERE blood_type = (SELECT blood_type FROM blood_requests WHERE id=1);
+
+
+-- ---------- (B) Trigger: auto-update inventory after a donation ----------
+-- Again: only enable if your app is NOT already doing the same update.
