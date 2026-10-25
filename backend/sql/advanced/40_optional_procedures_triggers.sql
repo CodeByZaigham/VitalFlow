@@ -1,0 +1,17 @@
+-- ==========================================
+-- 40_OPTIONAL_PROCEDURES_TRIGGERS.sql
+-- OPTIONAL DBMS FEATURES (Stored Procedures + Triggers)
+--
+-- ⚠️ IMPORTANT:
+-- Your FastAPI backend already updates inventory / donor status in Python.
+-- If you enable triggers here on the SAME database, you might update twice.
+--
+-- Best practice for demo:
+--   1) Make a COPY database (blood_donation_demo)
+--   2) Run schema, then run this file on the demo DB
+--   3) Show your teacher procedures/triggers working in SQL
+-- ==========================================
+
+-- ---------- (A) Stored Procedure: approve a request atomically ----------
+-- Approves a request ONLY if inventory is enough, and deducts stock.
+-- Also sets status to 'Approved' or keeps it 'Pending' if not enough.
