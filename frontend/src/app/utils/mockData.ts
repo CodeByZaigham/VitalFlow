@@ -24,4 +24,17 @@ export const bloodCompatibility = {
   }
 };
 
+// Donation facts (static educational content)
+export const donationFacts = [
+  'One blood donation can save up to three lives.',
+  'Blood cannot be manufactured – it can only come from donors.',
+  'Every 2 seconds, someone in the world needs blood.',
+  'Only 10% of eligible donors donate blood annually.',
+  'The entire process of donating blood takes about 10-12 minutes.',
+  'Your body replaces the donated blood within 24-48 hours.',
+  'Type O- blood is the universal donor and can be given to anyone.',
+  'Type AB+ blood is the universal recipient and can receive any blood type.',
+  'Healthy adults can donate blood every 56 days (8 weeks).',
+  'One unit of blood can help patients with cancer, trauma, or undergoing surgery.'
+];
 
