@@ -38,3 +38,31 @@ export const donationFacts = [
   'One unit of blood can help patients with cancer, trauma, or undergoing surgery.'
 ];
 
+// Helper function to check donor eligibility
+export const checkDonorEligibility = (
+  age: number,
+  healthStatus: string,
+  lastDonationDate?: string
+): { eligible: boolean; reason?: string } => {
+  if (age < 18) {
+    return { eligible: false, reason: 'You must be at least 18 years old to donate blood' };
+  }
+
+  if (healthStatus !== 'Fit') {
+    return { eligible: false, reason: 'Only individuals with Fit health status can become donors' };
+  }
+
+  if (lastDonationDate) {
+    const lastDonation = new Date(lastDonationDate);
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+    if (lastDonation > threeMonthsAgo) {
+      return { eligible: false, reason: 'Last donation must be at least 3 months ago' };
+    }
+  }
+
+  return { eligible: true };
+};
+
+
