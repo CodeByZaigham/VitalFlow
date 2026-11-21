@@ -65,4 +65,18 @@ export const checkDonorEligibility = (
   return { eligible: true };
 };
 
+// Helper function to validate blood request
+export const validateBloodRequest = (
+  requestedQuantity: number,
+  availableQuantity: number
+): { valid: boolean; message?: string } => {
+  if (requestedQuantity <= 0) {
+    return { valid: false, message: 'Quantity must be greater than 0' };
+  }
 
+  if (availableQuantity < requestedQuantity) {
+    return { valid: false, message: 'Insufficient blood stock' };
+  }
+
+  return { valid: true };
+};
