@@ -36,6 +36,28 @@ function AppContent() {
     }
   }, [currentUser]);
 
+  // ✅ FIX: Listen for custom navigation events (Request Blood redirect)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ page?: string }>;
+      const page = ce.detail?.page;
+      if (page) setCurrentPage(page as any);
+    };
+
+    window.addEventListener('bdms:navigate', handler as EventListener);
+    return () => window.removeEventListener('bdms:navigate', handler as EventListener);
+  }, []);
+
+  // Show loading spinner during initial load
+  if (loading && !currentUser) {
+    return <LoadingSpinner fullScreen />;
+  }
+
+  // If not logged in, show login page
+  if (!currentUser) {
+    return <LoginPage />;
+  }
+
   
 }
 
