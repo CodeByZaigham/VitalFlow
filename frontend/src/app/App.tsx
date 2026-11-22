@@ -58,7 +58,50 @@ function AppContent() {
     return <LoginPage />;
   }
 
-  
+  const isAdmin = currentUser.role === 'admin';
+
+  const renderPage = () => {
+    if (isAdmin) {
+      switch (currentPage) {
+        case 'dashboard':
+          return <DashboardPage />;
+        case 'customer-requests':
+          return <CustomerRequestsPage />;
+        case 'enrolled-donors':
+          return <EnrolledDonorsPage />;
+        case 'record-donation':
+          return <RecordDonationPage />;
+        case 'donation-history':
+          return <DonationHistoryPage />;
+        case 'manage-users':
+          return <ManageUsersPage />;
+        default:
+          return <DashboardPage />;
+      }
+    } else {
+      switch (currentPage) {
+        case 'blood-request':
+          return <BloodRequestPage />;
+        case 'available-donors':
+          return <AvailableDonorsPage />;
+        case 'blood-inventory':
+          return <BloodInventoryPage />;
+        case 'about':
+          return <AboutPage />;
+        default:
+          return <BloodRequestPage />;
+      }
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-red-50">
+      <Navbar currentPage={currentPage} onNavigate={setCurrentPage} />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {renderPage()}
+      </main>
+    </div>
+  );
 }
 
 export default function App() {
