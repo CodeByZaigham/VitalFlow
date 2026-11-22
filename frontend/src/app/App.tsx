@@ -19,3 +19,31 @@ import { RecordDonationPage } from './components/admin/RecordDonationPage';
 import { DonationHistoryPage } from './components/admin/DonationHistoryPage';
 import { ManageUsersPage } from './components/admin/ManageUsersPage';
 
+function AppContent() {
+  const { currentUser, loading } = useAppContext();
+
+  // Start with a safe default (will be corrected after login)
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'blood-request'>('blood-request');
+
+  // ✅ FIX: When user logs in / session restores, set correct initial page
+  useEffect(() => {
+    if (!currentUser) return;
+
+    if (currentUser.role === 'admin') {
+      setCurrentPage('dashboard');
+    } else {
+      setCurrentPage('blood-request');
+    }
+  }, [currentUser]);
+
+  
+}
+
+export default function App() {
+  return (
+    <AppProvider>
+      <AppContent />
+      <Toaster position="top-right" richColors />
+    </AppProvider>
+  );
+}
