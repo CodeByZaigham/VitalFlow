@@ -58,3 +58,12 @@ export interface Donation {
   donationDate: string;
   createdAt: string;
 }
+
+export interface Notification {
+  id: string;
+  userId: string;
+  message: string;
+  type: 'success' | 'error' | 'info';
+  read: boolean;
+  createdAt: string;
+}
