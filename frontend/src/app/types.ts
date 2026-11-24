@@ -14,3 +14,32 @@ export interface User {
   role: 'customer' | 'admin';
   createdAt: string;
 }
+
+export interface Donor {
+  id: string;
+  userId?: string;
+  name: string;
+  age: number;
+  bloodType: BloodType;
+  gender: Gender;
+  healthStatus: HealthStatus;
+  city: string;
+  phone: string;
+  lastDonationDate?: string;
+  isAvailable: boolean;
+  createdAt: string;
+}
+
+export interface BloodRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  bloodType: BloodType;
+  quantity: number;
+  city: string;
+  urgency: 'Low' | 'Medium' | 'High';
+  reason: string;
+  status: RequestStatus;
+  createdAt: string;
+  updatedAt: string;
+}
