@@ -43,3 +43,18 @@ export interface BloodRequest {
   createdAt: string;
   updatedAt: string;
 }
+export interface BloodInventory {
+  bloodType: BloodType;
+  quantity: number;
+  lastUpdated: string;
+}
+
+export interface Donation {
+  id: string;
+  donorId: string;
+  donorName: string;
+  bloodType: BloodType;
+  quantity: number;
+  donationDate: string;
+  createdAt: string;
+}
